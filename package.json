@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/DineshMurugan2022/CRM.git"
+    "url": "https://github.com/DineshMurugan2022/bnycrm.git"
   },
   "keywords": [
     "CRM",
@@ -23,9 +23,9 @@
   "author": "Dinesh Murugan",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/DineshMurugan2022/CRM/issues"
+    "url": "https://github.com/DineshMurugan2022/bnycrm/issues"
   },
-  "homepage": "https://dineshmurugan2022.github.io/CRM/",
+  "homepage": "https://dineshmurugan2022.github.io/bnycrm/",
   "dependencies": {
     "bootstrap": "^5.3.0",
     "react": "^18.2.0",
