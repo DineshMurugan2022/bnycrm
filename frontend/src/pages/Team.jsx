@@ -1,101 +1,121 @@
-import React, { useState } from 'react';
-import { Pencil, Trash2, Mail, Phone } from 'lucide-react';
-import { Button } from 'react-bootstrap';
-import AddMemberDialog from '../components/AddMemberDialog'; // Import the AddMemberDialog
+import React, { useState } from "react";
+import { useUser } from "../user/UserContext";
+import { Card, Tabs, Tab, Button } from "react-bootstrap";
+import UserTable from "../user/Usertable";
+import AddUserForm from "../user/AddUserForm";
+import EditUserForm from "../user/EditUserForm";
 
 const Team = () => {
-  const [members, setMembers] = useState([
-    { id: 1, name: 'John Doe', email: 'john.doe@example.com', phone: '(123) 456-7890', role: 'Sales Manager', status: 'active', avatar: 'JD' },
-    { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', phone: '(234) 567-8901', role: 'Sales Representative', status: 'active', avatar: 'JS' },
-    { id: 3, name: 'Robert Johnson', email: 'robert.johnson@example.com', phone: '(345) 678-9012', role: 'Lead Generation', status: 'active', avatar: 'RJ' },
-    { id: 4, name: 'Emily Davis', email: 'emily.davis@example.com', phone: '(456) 789-0123', role: 'Account Executive', status: 'inactive', avatar: 'ED' },
-    { id: 5, name: 'Michael Wilson', email: 'michael.wilson@example.com', phone: '(567) 890-1234', role: 'Customer Success', status: 'active', avatar: 'MW' },
-  ]);
+  const { users } = useUser();
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [activeTab, setActiveTab] = useState("all-users");
 
-  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false);
+  const teamLeaders = users.filter(user => user.userGroup === "teamleader");
+  const bdms = users.filter(user => user.userGroup === "bdm");
+  const telecallers = users.filter(user => user.userGroup === "user"); // ✅ Renamed regular users to telecallers
 
-  // Handle adding new member
-  const handleAddMember = (newMemberData) => {
-    const newMember = {
-      ...newMemberData,
-      id: members.length + 1, // Just a simple way to generate new id
-      status: 'active',
-      avatar: newMemberData.name.charAt(0), // Assuming avatar is the first letter of the name
-    };
-    setMembers([...members, newMember]);
+  const handleEdit = (user) => {
+    setSelectedUser(user);
+    setActiveTab("edit-user");
+  };
+
+  const handleAddUserClick = () => {
+    setActiveTab("add-user");
   };
 
   return (
-    <div className="container py-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>Team Members</h2>
-        <Button variant="primary" onClick={() => setShowAddMemberDialog(true)}>
-          Add Member
+    <div className="container mt-5">
+      {/* Header Section */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 className="display-5 fw-bold">Users Dashboard</h1>
+          <p className="text-muted">Manage all your users, team leaders, and BDMs here.</p>
+        </div>
+        <Button variant="primary" onClick={handleAddUserClick}>
+          ➕ Add New User
         </Button>
       </div>
 
-      <div className="table-responsive">
-        <table className="table table-striped">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Contact</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th className="text-end">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((member) => (
-              <tr key={member.id}>
-                <td>
-                  <div className="d-flex align-items-center gap-2">
-                    <div
-                      className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                      style={{ width: 36, height: 36 }}
-                    >
-                      {member.avatar}
-                    </div>
-                    <span>{member.name}</span>
-                  </div>
-                </td>
-                <td>
-                  <div className="text-muted small">
-                    <div>
-                      <Mail size={14} className="me-1" /> {member.email}
-                    </div>
-                    <div>
-                      <Phone size={14} className="me-1" /> {member.phone}
-                    </div>
-                  </div>
-                </td>
-                <td>{member.role}</td>
-                <td>
-                  <span className={`badge ${member.status === 'active' ? 'bg-success' : 'bg-secondary'}`}>
-                    {member.status === 'active' ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="text-end">
-                  <button className="btn btn-sm btn-outline-secondary me-2">
-                    <Pencil size={16} />
-                  </button>
-                  <button className="btn btn-sm btn-outline-danger">
-                    <Trash2 size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Stats Cards */}
+      <div className="row g-4 mb-4">
+        <div className="col-md-4">
+          <Card className="shadow-sm border-0">
+            <Card.Body>
+              <Card.Title className="text-muted small">Total Users</Card.Title>
+              <h4 className="fw-bold">{users.length}</h4>
+            </Card.Body>
+          </Card>
+        </div>
+        <div className="col-md-4">
+          <Card className="shadow-sm border-0">
+            <Card.Body>
+              <Card.Title className="text-muted small">Team Leaders</Card.Title>
+              <h4 className="fw-bold">{teamLeaders.length}</h4>
+            </Card.Body>
+          </Card>
+        </div>
+        <div className="col-md-4">
+          <Card className="shadow-sm border-0">
+            <Card.Body>
+              <Card.Title className="text-muted small">BDMs</Card.Title>
+              <h4 className="fw-bold">{bdms.length}</h4>
+            </Card.Body>
+          </Card>
+        </div>
       </div>
 
-      {/* Render the AddMemberDialog component as a modal */}
-      {showAddMemberDialog && (
-        <AddMemberDialog
-          onClose={() => setShowAddMemberDialog(false)}
-          onAdd={handleAddMember}
-        />
-      )}
+      {/* Tabs Section */}
+      <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} id="user-tabs" className="mb-3">
+        <Tab eventKey="all-users" title="All Users">
+          <Card className="shadow-sm">
+            <Card.Body>
+              <UserTable users={users} onEdit={handleEdit} />
+            </Card.Body>
+          </Card>
+        </Tab>
+
+        <Tab eventKey="team-leaders" title="Team Leaders">
+          <Card className="shadow-sm">
+            <Card.Body>
+              <UserTable users={teamLeaders} onEdit={handleEdit} />
+            </Card.Body>
+          </Card>
+        </Tab>
+
+        <Tab eventKey="bdms" title="BDMs">
+          <Card className="shadow-sm">
+            <Card.Body>
+              <UserTable users={bdms} onEdit={handleEdit} />
+            </Card.Body>
+          </Card>
+        </Tab>
+
+        <Tab eventKey="telecallers" title="Telecallers"> {/* ✅ Updated tab name */}
+          <Card className="shadow-sm">
+            <Card.Body>
+              <UserTable users={telecallers} onEdit={handleEdit} />
+            </Card.Body>
+          </Card>
+        </Tab>
+
+        <Tab eventKey="add-user" title="Add New User">
+          <Card className="shadow-sm">
+            <Card.Body>
+              <AddUserForm />
+            </Card.Body>
+          </Card>
+        </Tab>
+
+        {selectedUser && (
+          <Tab eventKey="edit-user" title={`Edit: ${selectedUser.username}`}>
+            <Card className="shadow-sm">
+              <Card.Body>
+                <EditUserForm user={selectedUser} onClose={() => setActiveTab("all-users")} />
+              </Card.Body>
+            </Card>
+          </Tab>
+        )}
+      </Tabs>
     </div>
   );
 };

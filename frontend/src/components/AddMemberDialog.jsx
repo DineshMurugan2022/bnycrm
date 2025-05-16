@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
+import axios from 'axios'; // Make sure you import axios!!
 
 const AddMemberDialog = ({ onClose, onAdd }) => {
   const [memberData, setMemberData] = useState({
@@ -17,11 +18,28 @@ const AddMemberDialog = ({ onClose, onAdd }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Call the onAdd function passed from parent to add the member
-    onAdd(memberData);
-    onClose(); // Close the modal
+
+    // 1. Generate random password
+    const generatedPassword = Math.random().toString(36).slice(-8);
+
+    try {
+      const formData = {
+        ...memberData,
+        password: generatedPassword, // Important: Send password
+      };
+
+      // 2. POST to backend
+      const response = await axios.post('http://localhost:5000/api/register', formData);
+
+      alert('Member added successfully! User ID and password sent to email.');
+      onAdd(formData);
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.error || 'Something went wrong');
+    }
   };
 
   return (
@@ -31,7 +49,7 @@ const AddMemberDialog = ({ onClose, onAdd }) => {
       </Modal.Header>
       <Modal.Body>
         <Form onSubmit={handleSubmit}>
-          <Form.Group controlId="formName">
+          <Form.Group controlId="formName" className="mb-3">
             <Form.Label>Name</Form.Label>
             <Form.Control
               type="text"
@@ -41,7 +59,8 @@ const AddMemberDialog = ({ onClose, onAdd }) => {
               required
             />
           </Form.Group>
-          <Form.Group controlId="formEmail">
+
+          <Form.Group controlId="formEmail" className="mb-3">
             <Form.Label>Email</Form.Label>
             <Form.Control
               type="email"
@@ -51,7 +70,8 @@ const AddMemberDialog = ({ onClose, onAdd }) => {
               required
             />
           </Form.Group>
-          <Form.Group controlId="formPhone">
+
+          <Form.Group controlId="formPhone" className="mb-3">
             <Form.Label>Phone</Form.Label>
             <Form.Control
               type="text"
@@ -61,7 +81,8 @@ const AddMemberDialog = ({ onClose, onAdd }) => {
               required
             />
           </Form.Group>
-          <Form.Group controlId="formRole">
+
+          <Form.Group controlId="formRole" className="mb-3">
             <Form.Label>Role</Form.Label>
             <Form.Control
               type="text"
@@ -71,11 +92,12 @@ const AddMemberDialog = ({ onClose, onAdd }) => {
               required
             />
           </Form.Group>
-          <div className="d-flex justify-content-end mt-3">
-            <Button variant="secondary" onClick={onClose}>
-              Close
+
+          <div className="d-flex justify-content-end">
+            <Button variant="secondary" onClick={onClose} className="me-2">
+              Cancel
             </Button>
-            <Button variant="primary" type="submit" className="ms-2">
+            <Button variant="primary" type="submit">
               Add Member
             </Button>
           </div>

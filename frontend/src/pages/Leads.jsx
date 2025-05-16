@@ -1,138 +1,120 @@
-import React, { useState } from 'react';
-import { MoreHorizontal, Calendar, Filter } from 'lucide-react';
-import AddLeadDialog from '../components/AddLeadDialog'; // Adjust the import path as necessary
+import React, { useState } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
+import AddLeadDialog from "../components/AddLeadDialog";
+import { Button } from "react-bootstrap"; // Bootstrap button
 
-const initialLeads = {
-  'New': [
-    { id: '1', name: 'Alex Johnson', initials: 'AJ', company: 'Johnson Enterprises', value: '₹12,500', stage: 'New', lastActivity: '2 days ago' },
-    { id: '2', name: 'Maria Garcia', initials: 'MG', company: 'Bright Solutions', value: '₹8,750', stage: 'New', lastActivity: '3 days ago' },
-  ],
-  'Qualified': [
-    { id: '3', name: 'Thomas Wright', initials: 'TW', company: 'Wright Industries', value: '₹24,000', stage: 'Qualified', lastActivity: '1 day ago' },
-  ],
-  'Proposal': [
-    { id: '4', name: 'Emily Chen', initials: 'EC', company: 'Global Tech', value: '₹18,500', stage: 'Proposal', lastActivity: 'Today' },
-    { id: '5', name: 'Daniel Smith', initials: 'DS', company: 'Smith & Co', value: '₹32,750', stage: 'Proposal', lastActivity: '4 days ago' },
-  ],
-  'Negotiation': [
-    { id: '6', name: 'Sarah Miller', initials: 'SM', company: 'Miller Group', value: '₹45,000', stage: 'Negotiation', lastActivity: '2 days ago' },
-  ],
-  'Closed Won': [
-    { id: '7', name: 'James Wilson', initials: 'JW', company: 'Wilson Solutions', value: '₹28,500', stage: 'Closed Won', lastActivity: '1 week ago' },
-  ],
-  'Closed Lost': [
-    { id: '8', name: 'Robert Taylor', initials: 'RT', company: 'Taylor Technologies', value: '₹15,000', stage: 'Closed Lost', lastActivity: '2 weeks ago' },
-  ],
-};
+const Lead = () => {
+  const [formData, setFormData] = useState({
+    campaignName: "",
+    dispositionName: "",
+    cdrDisposition: "",
+    uploadDateFrom: "",
+    uploadDateTo: "",
+  });
 
-const stageBadgeClasses = {
-  'New': 'badge text-bg-primary',
-  'Qualified': 'badge text-bg-info',
-  'Proposal': 'badge text-bg-warning',
-  'Negotiation': 'badge text-bg-secondary',
-  'Closed Won': 'badge text-bg-success',
-  'Closed Lost': 'badge text-bg-danger',
-};
+  const [showAddMemberDialog, setShowAddMemberDialog] = useState(false); // <-- You missed this state
 
-const LeadCard = ({ lead, onMoveClick }) => (
-  <div className="card mb-3 shadow-sm">
-    <div className="card-body">
-      <div className="d-flex justify-content-between align-items-start mb-2">
-        <div className="d-flex align-items-center">
-          <div className="bg-light text-primary fw-bold rounded-circle d-flex justify-content-center align-items-center me-3" style={{ width: 36, height: 36 }}>
-            {lead.initials}
-          </div>
-          <div>
-            <h6 className="mb-0">{lead.name}</h6>
-            <small className="text-muted">{lead.company}</small>
-          </div>
-        </div>
-        <div className="dropdown">
-          <button className="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
-            <MoreHorizontal size={16} />
-          </button>
-          <ul className="dropdown-menu dropdown-menu-end">
-            <li><button className="dropdown-item">Edit</button></li>
-            <li><button className="dropdown-item" onClick={() => onMoveClick(lead)}>Move Stage</button></li>
-            <li><button className="dropdown-item text-danger">Delete</button></li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="row text-muted small">
-        <div className="col-6">{lead.value}</div>
-        <div className="col-6 d-flex align-items-center">
-          <Calendar size={14} className="me-1" />
-          {lead.lastActivity}
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const Leads = () => {
-  const [leads, setLeads] = useState(initialLeads);
-  const [showDialog, setShowDialog] = useState(false);
-  const [selectedLead, setSelectedLead] = useState(null);
-  const stages = Object.keys(leads);
-
-  const handleAddLead = (newLead) => {
-    setLeads(prev => ({
-      ...prev,
-      [newLead.stage]: [...prev[newLead.stage], newLead],
-    }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
-  const moveLeadToStage = (leadId, currentStage, newStage) => {
-    const leadToMove = leads[currentStage].find(l => l.id === leadId);
-    if (!leadToMove) return;
-
-    const updatedLeads = {
-      ...leads,
-      [currentStage]: leads[currentStage].filter(l => l.id !== leadId),
-      [newStage]: [...leads[newStage], { ...leadToMove, stage: newStage }],
-    };
-    setLeads(updatedLeads);
+  const handleDialogClose = () => {
+    setShowAddMemberDialog(false);
   };
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container mt-5 p-4 border rounded shadow-sm bg-light position-relative">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <div className="d-flex gap-2">
-          <button className="btn btn-outline-secondary btn-sm d-flex align-items-center">
-            <Filter size={16} className="me-1" />
-            Filter
-          </button>
-          <button className="btn btn-primary btn-sm" onClick={() => setShowDialog(true)}>
-            + Add Lead
-          </button>
+        <h4 className="mb-0">Lead Creation</h4>
+        <Button variant="primary" onClick={() => setShowAddMemberDialog(true)}>
+          Upload Leads
+        </Button>
+      </div>
+
+      {/* FORM CONTENT */}
+      <div className="row mb-3">
+        <div className="col-md-6">
+          <label className="form-label">Campaign Name</label>
+          <select
+            className="form-select"
+            name="campaignName"
+            value={formData.campaignName}
+            onChange={handleChange}
+          >
+            <option value="">Select</option>
+            <option value="Campaign 1">Campaign 1</option>
+            <option value="Campaign 2">Campaign 2</option>
+          </select>
+        </div>
+
+        <div className="col-md-6">
+          <label className="form-label">Disposition Name</label>
+          <select
+            className="form-select"
+            name="dispositionName"
+            value={formData.dispositionName}
+            onChange={handleChange}
+          >
+            <option value="">Select</option>
+            <option value="RNR">RNR</option>
+            <option value="callback">Callback</option>
+            <option value="sale">Sale</option>
+            <option value="not interested">Not Interested</option>
+            <option value="follow ups">Follow Up's</option>
+            <option value="DND">DND</option>
+            <option value="appointment">Appointment</option>
+            <option value="sale done">Sale Done</option>
+            <option value="wrong number">Wrong Number</option>
+            <option value="not reachable">Not Reachable</option>
+            <option value="already signed">Already Signed</option>
+          </select>
         </div>
       </div>
 
-      <div className="row">
-        {stages.map(stage => (
-          <div className="col-12 col-md-6 col-lg-4 col-xl-3 mb-4" key={stage}>
-            <div className="mb-2">
-              <span className={stageBadgeClasses[stage]}>{stage} ({leads[stage].length})</span>
-            </div>
-            {leads[stage].map(lead => (
-              <LeadCard
-                key={lead.id}
-                lead={lead}
-                onMoveClick={(lead) => setSelectedLead(lead)}
-              />
-            ))}
-          </div>
-        ))}
+      <div className="mb-3">
+        <label className="form-label">Cdr Dispositions</label>
+        <select
+          className="form-select"
+          name="cdrDisposition"
+          value={formData.cdrDisposition}
+          onChange={handleChange}
+        >
+          <option value="">Select</option>
+          <option value="Answered">Answered</option>
+          <option value="No answer">No answer</option>
+          <option value="MOH">MOH</option>
+          <option value="BUSY">BUSY</option>
+        </select>
       </div>
 
-      <AddLeadDialog
-        show={showDialog}
-        onClose={() => setShowDialog(false)}
-        onAddLead={handleAddLead}
-      />
+      <div className="mb-3">
+        <label className="form-label">Upload Date</label>
+        <div className="d-flex gap-2">
+          <input
+            type="date"
+            className="form-control"
+            name="uploadDateFrom"
+            value={formData.uploadDateFrom}
+            onChange={handleChange}
+          />
+          <span className="align-self-center">-</span>
+          <input
+            type="date"
+            className="form-control"
+            name="uploadDateTo"
+            value={formData.uploadDateTo}
+            onChange={handleChange}
+          />
+        </div>
+      </div>
+
+      {/* Show Modal */}
+      {showAddMemberDialog && (
+        <AddLeadDialog onClose={handleDialogClose} />
+      )}
     </div>
   );
 };
 
-export default Leads;
+export default Lead;

@@ -1,66 +1,73 @@
-// src/pages/Login.jsx
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Form, Button, Container, Card } from 'react-bootstrap';
+import React, { useState } from "react";
+import { useUser } from "../user/UserContext";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { login } = useUser();
+  const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch('http://localhost:5000/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
 
-    const data = await res.json();
-    if (res.ok) {
-      alert('Logged in');
-      localStorage.setItem('token', data.token);
+    const user = await login(username, password); // Get user object
+
+    if (user) {
+      // Redirect based on role
+      switch (user.userGroup) {
+        case "admin":
+        case "teamleader":
+          navigate("/Index"); // Admin & Team Leader
+          break;
+        case "bdm":
+          navigate("/bdm"); // BDM
+          break;
+        case "user":
+          navigate("/call"); // Regular User
+          break;
+        default:
+          alert("Unknown user group. Please contact admin.");
+      }
     } else {
-      alert(data.message || 'Login failed');
+      alert("Invalid username or password");
     }
   };
 
   return (
-    <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: '100vh' }}>
-      <Card style={{ width: '400px' }} className="p-4">
-        <h3 className="mb-3 text-center">Login</h3>
-        <Form onSubmit={handleLogin}>
-          <Form.Group className="mb-3">
-            <Form.Label>Email address</Form.Label>
-            <Form.Control 
-              type="email" 
-              placeholder="Enter email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)} 
-              required
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Password</Form.Label>
-            <Form.Control 
-              type="password" 
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </Form.Group>
-
-          <Button variant="primary" type="submit" className="w-100">
-            Login
-          </Button>
-
-          <div className="mt-3 text-center">
-            Don't have an account? <Link to="/register">Register</Link>
-          </div>
-        </Form>
-      </Card>
-    </Container>
+    <div className="container mt-5">
+      <h2 className="mb-4">Login</h2>
+      <form onSubmit={handleSubmit} style={{ maxWidth: "400px" }}>
+        <div className="mb-3">
+          <label htmlFor="username" className="form-label">Username</label>
+          <input
+            id="username"
+            type="text"
+            className="form-control"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            placeholder="Enter your username"
+          />
+        </div>
+        <div className="mb-3">
+          <label htmlFor="password" className="form-label">Password</label>
+          <input
+            id="password"
+            type="password"
+            className="form-control"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            placeholder="Enter your password"
+          />
+        </div>
+        <button type="submit" className="btn btn-primary w-100">
+          Login
+        </button>
+      </form>
+    </div>
   );
 };
 

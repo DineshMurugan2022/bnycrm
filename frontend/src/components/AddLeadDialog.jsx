@@ -1,126 +1,74 @@
-import React, { useState } from 'react';
-import { Modal, Button, Form, Row, Col } from 'react-bootstrap';
+import React, { useState } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
 
-const AddLeadDialog = ({ show, onClose, onAddLead }) => {
-  const [newLead, setNewLead] = useState({
-    name: '',
-    company: '',
-    value: '',
-    stage: 'New', // Default stage is 'New'
-    lastActivity: 'Just Now', // Default activity
-    initials: '', // You can calculate initials from name or let the user fill this
+const AddLeadDialog = ({ onClose }) => {
+  const [formData, setFormData] = useState({
+    file: null,
+    campaignName: "",
   });
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'value') {
-      // Allow only numeric values and the comma for formatting
-      const numericValue = value.replace(/[^\d,]/g, '');
-      setNewLead({
-        ...newLead,
-        [name]: numericValue,
-      });
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === "file") {
+      setFormData({ ...formData, file: files[0] });
     } else {
-      setNewLead({
-        ...newLead,
-        [name]: value,
-      });
+      setFormData({ ...formData, [name]: value });
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Add INR symbol to the value when submitting the form
-    const formattedLead = {
-      ...newLead,
-      value: `₹${newLead.value}`, // Adding INR symbol
-    };
-    onAddLead(formattedLead); // Adds the new lead to the state
-    onClose(); // Closes the dialog
+    console.log("Submitted:", formData);
   };
 
   return (
-    <Modal show={show} onHide={onClose} centered>
-      <Modal.Header closeButton>
-        <Modal.Title>Add New Lead</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form onSubmit={handleSubmit}>
-          <Row>
-            <Col xs={12} sm={6} className="mb-3">
-              <Form.Group controlId="formLeadName">
-                <Form.Label>Lead Name</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="name"
-                  value={newLead.name}
-                  onChange={handleInputChange}
-                  placeholder="Enter lead's name"
-                  required
-                />
-              </Form.Group>
-            </Col>
+    <div
+      className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 1050 }}
+    >
+      <div
+        className="bg-white p-4 rounded shadow"
+        style={{ width: "100%", maxWidth: "500px", position: "relative" }}
+      >
+        {/* Close Button */}
+        <button
+          className="btn-close position-absolute top-0 end-0 m-3"
+          onClick={onClose}
+        ></button>
 
-            <Col xs={12} sm={6} className="mb-3">
-              <Form.Group controlId="formLeadCompany">
-                <Form.Label>Company</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="company"
-                  value={newLead.company}
-                  onChange={handleInputChange}
-                  placeholder="Enter company name"
-                  required
-                />
-              </Form.Group>
-            </Col>
+        <h4 className="mb-4 text-center">Upload Leads</h4>
 
-            <Col xs={12} sm={6} className="mb-3">
-              <Form.Group controlId="formLeadValue">
-                <Form.Label>Value</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="value"
-                  value={newLead.value}
-                  onChange={handleInputChange}
-                  placeholder="Enter lead value"
-                  required
-                />
-              </Form.Group>
-            </Col>
-
-            <Col xs={12} sm={6} className="mb-3">
-              <Form.Group controlId="formLeadStage">
-                <Form.Label>Stage</Form.Label>
-                <Form.Control
-                  as="select"
-                  name="stage"
-                  value={newLead.stage}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="New">New</option>
-                  <option value="Qualified">Qualified</option>
-                  <option value="Proposal">Proposal</option>
-                  <option value="Negotiation">Negotiation</option>
-                  <option value="Closed Won">Closed Won</option>
-                  <option value="Closed Lost">Closed Lost</option>
-                </Form.Control>
-              </Form.Group>
-            </Col>
-          </Row>
-
-          <div className="d-flex justify-content-end mt-4">
-            <Button variant="secondary" onClick={onClose}>
-              Close
-            </Button>
-            <Button variant="primary" type="submit" className="ms-2">
-              Add Lead
-            </Button>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label className="form-label">Upload File</label>
+            <input
+              type="file"
+              className="form-control"
+              name="file"
+              onChange={handleChange}
+            />
           </div>
-        </Form>
-      </Modal.Body>
-    </Modal>
+
+          <div className="mb-3">
+            <label className="form-label">Campaign Name</label>
+            <select
+              className="form-select"
+              name="campaignName"
+              value={formData.campaignName}
+              onChange={handleChange}
+            >
+              <option value="">Select</option>
+              <option value="Campaign 1">Campaign 1</option>
+              <option value="Campaign 2">Campaign 2</option>
+            </select>
+          </div>
+
+          <button type="submit" className="btn btn-primary w-100">
+            Upload
+          </button>
+        </form>
+      </div>
+    </div>
   );
 };
 

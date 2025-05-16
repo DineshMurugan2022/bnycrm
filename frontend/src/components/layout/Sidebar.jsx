@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   FaTachometerAlt, FaUsers, FaBullseye, FaTasks, FaCalendarAlt,
-  FaChartBar, FaUserPlus, FaCog, FaChevronLeft, FaChevronRight
+  FaChartBar, FaUserPlus, FaCog, FaChevronLeft, FaChevronRight, FaSignOutAlt
 } from 'react-icons/fa';
 import Button from 'react-bootstrap/Button';
-
 
 const SidebarItem = ({ icon, label, to, collapsed }) => {
   return (
@@ -41,8 +40,9 @@ const Sidebar = () => {
       <div className="d-flex align-items-center justify-content-between mb-3">
         {!collapsed && (
           <div className="d-flex align-items-center gap-2">
-            <div className="rounded-circle bg-primary" style={{ width: 24, height: 24 }} />
-            <span className="fw-bold">LeadFlow CRM</span>
+           <img src="https://bnytechnologies.in/img/logo.png" alt="Logo" style={{ width: 30, height: 30 }} />
+
+            <span className="fw-bold">B&Y CRM</span>
           </div>
         )}
         <Button
@@ -56,13 +56,16 @@ const Sidebar = () => {
       </div>
 
       <div className="d-flex flex-column gap-1">
-        <SidebarItem icon={<FaTachometerAlt />} label="Dashboard" to="/" collapsed={collapsed} />
-        <SidebarItem icon={<FaUsers />} label="Contacts" to="/contacts" collapsed={collapsed} />
+        <SidebarItem icon={<FaTachometerAlt />} label="Dashboard" to="/Index" collapsed={collapsed} />
+        <SidebarItem icon={<FaUsers />} label="Monitoring" to="/Monitoring" collapsed={collapsed} />
         <SidebarItem icon={<FaBullseye />} label="Leads" to="/leads" collapsed={collapsed} />
         <SidebarItem icon={<FaTasks />} label="Tasks" to="/tasks" collapsed={collapsed} />
         <SidebarItem icon={<FaCalendarAlt />} label="Calendar" to="/calendar" collapsed={collapsed} />
-        <SidebarItem icon={<FaChartBar />} label="Reports" to="/reports" collapsed={collapsed} />
+        {/* <SidebarItem icon={<FaChartBar />} label="Reports" to="/reports" collapsed={collapsed} /> */}
         <SidebarItem icon={<FaUserPlus />} label="Team" to="/team" collapsed={collapsed} />
+        <SidebarItem icon={<FaSignOutAlt />} label="Call" to="/call" collapsed={collapsed} />
+        <SidebarItem icon={<FaUserPlus/>} label="Appointment" to="/appointment" collapsed={collapsed} />
+        <SidebarItem icon={<FaSignOutAlt />} label="BDM" to="/bdm" collapsed={collapsed} />
       </div>
 
       <div className="mt-auto pt-3">
