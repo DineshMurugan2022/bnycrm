@@ -70,9 +70,5 @@ app.post('/api/login', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
-  const generatePassword = () => {
-    return Math.random().toString(36).slice(-8); // random 8-character password
-  };
-  
 });
 
