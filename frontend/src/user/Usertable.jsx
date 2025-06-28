@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { useUser } from "../user/UserContext"; // adjust the path if needed
-import EditUserForm from "./EditUserForm"; // ✅ Correct
-// create or convert separately
+import { useUser } from "../user/UserContext";
+import EditUserForm from "./EditUserForm";
 import { Modal, Button, Table, Badge } from "react-bootstrap";
 
 const UserTable = ({ users }) => {
@@ -20,10 +19,15 @@ const UserTable = ({ users }) => {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedUser) {
-      deleteUser(selectedUser.id);
-      setShowDeleteModal(false);
+      try {
+        await deleteUser(selectedUser.id);
+        setShowDeleteModal(false);
+      } catch (error) {
+        console.error("Delete failed:", error);
+        alert("Failed to delete user.");
+      }
     }
   };
 
@@ -43,6 +47,19 @@ const UserTable = ({ users }) => {
         return "secondary";
     }
   };
+
+  const getStatusDot = (status) => (
+    <span style={{
+      display: 'inline-block',
+      width: 12,
+      height: 12,
+      borderRadius: '50%',
+      marginRight: 6,
+      background: status === 'active' ? 'green' : 'red',
+      border: '1px solid #ccc',
+      verticalAlign: 'middle'
+    }}></span>
+  );
 
   return (
     <div className="rounded border p-3">
@@ -66,25 +83,28 @@ const UserTable = ({ users }) => {
                 </td>
                 <td>{user.phone}</td>
                 <td>
-                  <Badge bg={getStatusVariant(user.loginStatus)}>{user.loginStatus}</Badge>
+                  {getStatusDot(user.loginStatus)}
+                  <span style={{ verticalAlign: 'middle' }}>{user.loginStatus}</span>
                 </td>
                 <td className="text-end">
                   <Button
-                    variant="outline-primary "
+                    variant="outline-primary"
                     size="sm"
                     className="me-2"
                     onClick={() => handleEdit(user)}
-                  
                   >
-                    <i className="bi bi-pencil">Edit</i>
+                    <i className="bi bi-pencil" /> Edit
                   </Button>
                   <Button
                     variant="outline-danger"
                     size="sm"
                     onClick={() => handleDelete(user)}
-                    disabled={user.id === currentUser?.id}
+                    disabled={
+                      user.id === currentUser?.id || // cannot delete self
+                      (currentUser?.userGroup !== "admin" && user.userGroup !== "user")
+                    }
                   >
-                    <i className="bi bi-trash"> Delete</i>
+                    <i className="bi bi-trash" /> Delete
                   </Button>
                 </td>
               </tr>
@@ -95,7 +115,7 @@ const UserTable = ({ users }) => {
         <div className="text-center p-4 text-muted">No users found.</div>
       )}
 
-      {/* Edit User Modal */}
+      {/* Edit Modal */}
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Edit User</Modal.Title>
@@ -107,7 +127,7 @@ const UserTable = ({ users }) => {
         </Modal.Body>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Modal */}
       <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>Confirm Delete</Modal.Title>

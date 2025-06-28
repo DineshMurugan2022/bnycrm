@@ -1,62 +1,110 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from './api/axios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function BDM() {
   const [appointments, setAppointments] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [newEntry, setNewEntry] = useState({
-    client: '',
-    date: '',
-    met: false,
-    signed: false,
-    contractValue: 0,
-    clearancePending: false,
-  });
+  const [newEntry, setNewEntry] = useState(initialEntry());
   const [filter, setFilter] = useState('all');
   const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const API = 'http://localhost:5000/appointments'; // your backend API
+  const API_URL = '/appointments';
 
   useEffect(() => {
     fetchAppointments();
   }, []);
 
+  function initialEntry() {
+    return {
+      client: '',
+      date: '',
+      met: false,
+      signed: false,
+      contractValue: 0,
+      clearancePending: false,
+      follow: false,
+    };
+  }
+
   const fetchAppointments = async () => {
     try {
-      const res = await axios.get(API);
+      const res = await api.get(API_URL);
       setAppointments(res.data);
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.error('Error fetching appointments:', error.response?.data || error.message);
     }
   };
 
   const handleAddOrUpdate = async () => {
+    if (!newEntry.client || !newEntry.date) {
+      alert('Client and date are required.');
+      return;
+    }
+
+    if (isNaN(Date.parse(newEntry.date))) {
+      alert('Please enter a valid date.');
+      return;
+    }
+
+    setLoading(true);
+
+    const payload = {
+      ...newEntry,
+      contractValue: Number(newEntry.contractValue),
+    };
+
+    console.log('Saving payload:', payload);
+
     try {
-      const payload = { ...newEntry, contractValue: Number(newEntry.contractValue) };
       if (editingId) {
-        await axios.put(`${API}/${editingId}`, payload);
+        await api.put(`${API_URL}/${editingId}`, payload);
       } else {
-        await axios.post(API, payload);
+        await api.post(API_URL, payload);
       }
-      setNewEntry({
-        client: '',
-        date: '',
-        met: false,
-        signed: false,
-        contractValue: 0,
-        clearancePending: false,
-      });
-      setEditingId(null);
-      setShowForm(false);
-      fetchAppointments(); // Refresh data
+
+      resetForm();
+      fetchAppointments();
     } catch (error) {
-      console.error('Error saving appointment:', error);
+      console.error('Error saving appointment:', error.response || error);
+      let errorMessage = 'Could not save appointment. Please check your inputs.';
+
+      if (error.response && error.response.data) {
+        // Look for error message in common places
+        if (typeof error.response.data.error === 'string') {
+          errorMessage = error.response.data.error;
+        } else if (typeof error.response.data.message === 'string') {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.error && typeof error.response.data.error.message === 'string') {
+           errorMessage = error.response.data.error.message;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const resetForm = () => {
+    setNewEntry(initialEntry());
+    setEditingId(null);
+    setShowForm(false);
+  };
+
   const handleEdit = (entry) => {
-    setNewEntry(entry);
+    setNewEntry({
+      client: entry.client,
+      date: entry.date.split('T')[0],
+      met: entry.met,
+      signed: entry.signed,
+      contractValue: entry.contractValue,
+      clearancePending: entry.clearancePending,
+      follow: entry.follow,
+    });
     setEditingId(entry._id);
     setShowForm(true);
   };
@@ -64,10 +112,10 @@ function BDM() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this appointment?')) return;
     try {
-      await axios.delete(`${API}/${id}`);
+      await axios.delete(`${API}/${id}`, config);
       fetchAppointments();
     } catch (error) {
-      console.error('Error deleting appointment:', error);
+      console.error('Error deleting appointment:', error.response?.data || error.message);
     }
   };
 
@@ -76,35 +124,29 @@ function BDM() {
     if (filter === 'met') return a.met;
     if (filter === 'signed') return a.signed;
     if (filter === 'pending') return a.clearancePending;
+    if (filter === 'follow') return a.follow;
     return true;
   });
 
-  const totalAppointments = appointments.length;
-  const metCount = appointments.filter((a) => a.met).length;
-  const notMetCount = totalAppointments - metCount;
-  const signedCount = appointments.filter((a) => a.signed).length;
-  const clearancePendingCount = appointments.filter((a) => a.clearancePending).length;
-  const totalSales = appointments
-    .filter((a) => a.signed && !a.clearancePending)
-    .reduce((sum, a) => sum + Number(a.contractValue), 0);
+  const stats = {
+    total: appointments.length,
+    met: appointments.filter((a) => a.met).length,
+    notMet: appointments.filter((a) => !a.met).length,
+    signed: appointments.filter((a) => a.signed).length,
+    pending: appointments.filter((a) => a.clearancePending).length,
+    sales: appointments
+      .filter((a) => a.signed && !a.clearancePending)
+      .reduce((sum, a) => sum + Number(a.contractValue), 0),
+  };
 
   return (
     <div className="container my-4">
-      {/* Header and Add Button */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h2>BDM Appointments</h2>
         <button
           className="btn btn-primary"
           onClick={() => {
-            setEditingId(null);
-            setNewEntry({
-              client: '',
-              date: '',
-              met: false,
-              signed: false,
-              contractValue: 0,
-              clearancePending: false,
-            });
+            resetForm();
             setShowForm(true);
           }}
         >
@@ -112,47 +154,15 @@ function BDM() {
         </button>
       </div>
 
-      {/* Stats Cards */}
       <div className="row mb-3">
-        <div className="col-md-2">
-          <div className="card p-3 bg-primary text-white">
-            <h6>Total</h6>
-            <h5>{totalAppointments}</h5>
-          </div>
-        </div>
-        <div className="col-md-2">
-          <div className="card p-3 bg-success text-white">
-            <h6>Met</h6>
-            <h5>{metCount}</h5>
-          </div>
-        </div>
-        <div className="col-md-2">
-          <div className="card p-3 bg-danger text-white">
-            <h6>Not Met</h6>
-            <h5>{notMetCount}</h5>
-          </div>
-        </div>
-        <div className="col-md-2">
-          <div className="card p-3 bg-info text-white">
-            <h6>Signed</h6>
-            <h5>{signedCount}</h5>
-          </div>
-        </div>
-        <div className="col-md-2">
-          <div className="card p-3 bg-warning">
-            <h6>Pending</h6>
-            <h5>{clearancePendingCount}</h5>
-          </div>
-        </div>
-        <div className="col-md-2">
-          <div className="card p-3 bg-dark text-white">
-            <h6>Sales</h6>
-            <h5>₹{totalSales}</h5>
-          </div>
-        </div>
+        <StatCard title="Total" value={stats.total} bg="primary" />
+        <StatCard title="Met" value={stats.met} bg="success" />
+        <StatCard title="Not Met" value={stats.notMet} bg="danger" />
+        <StatCard title="Signed" value={stats.signed} bg="info" />
+        <StatCard title="Pending" value={stats.pending} bg="warning" />
+        <StatCard title="Sales" value={`₹${stats.sales}`} bg="dark" />
       </div>
 
-      {/* Filter */}
       <div className="mb-3">
         <label className="form-label me-2">Filter:</label>
         <select
@@ -164,123 +174,135 @@ function BDM() {
           <option value="met">Met</option>
           <option value="signed">Signed</option>
           <option value="pending">Pending</option>
+          <option value="follow">Follow</option>
         </select>
       </div>
 
-      {/* Form */}
       {showForm && (
-        <div className="card p-3 mb-3">
-          <h5>{editingId ? 'Edit' : 'Add'} Appointment</h5>
-          <div className="row g-2">
-            <div className="col-md-4">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Client Name"
-                value={newEntry.client}
-                onChange={(e) => setNewEntry({ ...newEntry, client: e.target.value })}
-              />
-            </div>
-            <div className="col-md-2">
-              <input
-                type="date"
-                className="form-control"
-                value={newEntry.date}
-                onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })}
-              />
-            </div>
-            <div className="col-md-1 d-flex align-items-center">
-              <input
-                type="checkbox"
-                className="form-check-input me-1"
-                checked={newEntry.met}
-                onChange={(e) => setNewEntry({ ...newEntry, met: e.target.checked })}
-              />
-              <label className="mb-0">Met</label>
-            </div>
-            <div className="col-md-1 d-flex align-items-center">
-              <input
-                type="checkbox"
-                className="form-check-input me-1"
-                checked={newEntry.signed}
-                onChange={(e) => setNewEntry({ ...newEntry, signed: e.target.checked })}
-              />
-              <label className="mb-0">Signed</label>
-            </div>
-            <div className="col-md-2">
-              <input
-                type="number"
-                className="form-control"
-                placeholder="Contract Value"
-                value={newEntry.contractValue}
-                onChange={(e) => setNewEntry({ ...newEntry, contractValue: e.target.value })}
-              />
-            </div>
-            <div className="col-md-1 d-flex align-items-center">
-              <input
-                type="checkbox"
-                className="form-check-input me-1"
-                checked={newEntry.clearancePending}
-                onChange={(e) => setNewEntry({ ...newEntry, clearancePending: e.target.checked })}
-              />
-              <label className="mb-0">Pending</label>
-            </div>
-            <div className="col-md-1">
-              <button
-                className="btn btn-success"
-                onClick={handleAddOrUpdate}
-                disabled={!newEntry.client || !newEntry.date}
-              >
-                {editingId ? 'Update' : 'Add'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <AppointmentForm
+          newEntry={newEntry}
+          setNewEntry={setNewEntry}
+          handleAddOrUpdate={handleAddOrUpdate}
+          editingId={editingId}
+          loading={loading}
+        />
       )}
 
-      {/* Appointment Table */}
-      <table className="table table-bordered table-striped">
-        <thead className="table-dark">
-          <tr>
-            <th>Client</th>
-            <th>Date</th>
-            <th>Met</th>
-            <th>Signed</th>
-            <th>Value</th>
-            <th>Pending</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredAppointments.map((app) => (
-            <tr key={app._id}>
-              <td>{app.client}</td>
-              <td>{new Date(app.date).toLocaleDateString()}</td>
-              <td>{app.met ? '✅' : '❌'}</td>
-              <td>{app.signed ? '✅' : '❌'}</td>
-              <td>₹{app.contractValue}</td>
-              <td>{app.clearancePending ? '⏳' : '✔️'}</td>
-              <td>
-                <button className="btn btn-sm btn-warning me-2" onClick={() => handleEdit(app)}>
-                  Edit
-                </button>
-                <button className="btn btn-sm btn-danger" onClick={() => handleDelete(app._id)}>
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-          {filteredAppointments.length === 0 && (
-            <tr>
-              <td colSpan="7" className="text-center">
-                No appointments found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <AppointmentTable
+        appointments={filteredAppointments}
+        handleEdit={handleEdit}
+        handleDelete={handleDelete}
+      />
     </div>
   );
 }
+
+const StatCard = ({ title, value, bg }) => (
+  <div className="col-md-2 mb-2">
+    <div className={`card p-3 bg-${bg} text-white`}>
+      <h6>{title}</h6>
+      <h5>{value}</h5>
+    </div>
+  </div>
+);
+
+const AppointmentForm = ({ newEntry, setNewEntry, handleAddOrUpdate, editingId, loading }) => (
+  <div className="card p-3 mb-3">
+    <h5>{editingId ? 'Edit' : 'Add'} Appointment</h5>
+    <div className="row g-2">
+      <div className="col-md-4">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Client Name"
+          value={newEntry.client}
+          onChange={(e) => setNewEntry({ ...newEntry, client: e.target.value })}
+        />
+      </div>
+      <div className="col-md-2">
+        <input
+          type="date"
+          className="form-control"
+          value={newEntry.date}
+          onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })}
+        />
+      </div>
+      <CheckboxField label="Met" value={newEntry.met} onChange={(v) => setNewEntry({ ...newEntry, met: v })} />
+      <CheckboxField label="Signed" value={newEntry.signed} onChange={(v) => setNewEntry({ ...newEntry, signed: v })} />
+      <div className="col-md-2">
+        <input
+          type="number"
+          className="form-control"
+          placeholder="Contract Value"
+          value={newEntry.contractValue}
+          onChange={(e) => setNewEntry({ ...newEntry, contractValue: e.target.value })}
+        />
+      </div>
+      <CheckboxField label="Pending" value={newEntry.clearancePending} onChange={(v) => setNewEntry({ ...newEntry, clearancePending: v })} />
+      <CheckboxField label="Follow" value={newEntry.follow} onChange={(v) => setNewEntry({ ...newEntry, follow: v })} />
+      <div className="col-md-1">
+        <button
+          className="btn btn-success"
+          onClick={handleAddOrUpdate}
+          disabled={loading || !newEntry.client || !newEntry.date}
+        >
+          {loading ? 'Saving...' : editingId ? 'Update' : 'Add'}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const CheckboxField = ({ label, value, onChange }) => (
+  <div className="col-md-1 d-flex align-items-center">
+    <input
+      type="checkbox"
+      className="form-check-input me-1"
+      checked={value}
+      onChange={(e) => onChange(e.target.checked)}
+    />
+    <label className="mb-0">{label}</label>
+  </div>
+);
+
+const AppointmentTable = ({ appointments, handleEdit, handleDelete }) => (
+  <table className="table table-bordered table-striped">
+    <thead className="table-dark">
+      <tr>
+        <th>Client</th>
+        <th>Date</th>
+        <th>Met</th>
+        <th>Signed</th>
+        <th>Follow</th>
+        <th>Value</th>
+        <th>Pending</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {appointments.length > 0 ? (
+        appointments.map((app) => (
+          <tr key={app._id}>
+            <td>{app.client}</td>
+            <td>{new Date(app.date).toLocaleDateString()}</td>
+            <td>{app.met ? '✅' : '❌'}</td>
+            <td>{app.signed ? '✅' : '❌'}</td>
+            <td>{app.follow ? '✅' : '❌'}</td>
+            <td>₹{app.contractValue}</td>
+            <td>{app.clearancePending ? '⏳' : '✔️'}</td>
+            <td>
+              <button className="btn btn-sm btn-warning me-2" onClick={() => handleEdit(app)}>Edit</button>
+              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(app._id)}>Delete</button>
+            </td>
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td colSpan="8" className="text-center">No appointments found.</td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+);
 
 export default BDM;

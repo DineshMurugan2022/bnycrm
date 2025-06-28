@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode"; // ✅ Correct import
 
 import Monitoring from "./pages/Monitoring";
 import Leads from "./pages/Leads";
@@ -12,102 +13,165 @@ import Call from "./Call";
 import Apointment from "./Apointment";
 import BDM from "./BDM";
 import Livelocation from "./Livelocation";
+import Login from "./pages/Login";
+import ProtectedLayout from "./user/ProtectedLayout";
 
-import ProtectedLayout from "./components/layout/ProtectedLayout";
+// Helper to get user group from token
+const getUserGroupFromToken = () => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    const decoded = jwtDecode(token); // ✅ Correct usage
+    return decoded.userGroup;
+  } catch {
+    return null;
+  }
+};
+
+// Route protection component
+const RequireRole = ({ allowedRoles, children }) => {
+  const userGroup = getUserGroupFromToken();
+  return allowedRoles.includes(userGroup) ? children : <Navigate to="/team" replace />;
+};
 
 const App = () => {
+  const [auth, setAuth] = useState(() => {
+    const userGroup = getUserGroupFromToken();
+    return {
+      isLoggedIn: !!userGroup,
+      role: userGroup,
+    };
+  });
+
+  const userGroup = auth.role;
+  const showNavbar = !["user", "bdm"].includes(userGroup);
+
   return (
     <Routes>
-      {/* Redirect root path to /Index */}
-      <Route path="/" element={<Navigate to="/Index" replace />} />
-
-      {/* Routes wrapped with ProtectedLayout */}
+      <Route path="/login" element={<Login setAuth={setAuth} />} />
       <Route
-        path="/Index"
+        path="/"
         element={
-          <ProtectedLayout>
+          userGroup ? <Navigate to="/login" replace /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/index"
+        element={
+          <ProtectedLayout showNavbar={showNavbar}>
             <Index />
           </ProtectedLayout>
         }
       />
+
       <Route
-        path="/Monitoring"
+        path="/monitoring"
         element={
-          <ProtectedLayout>
-            <Monitoring />
-          </ProtectedLayout>
+          <RequireRole allowedRoles={["admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <Monitoring />
+            </ProtectedLayout>
+          </RequireRole>
         }
       />
+
       <Route
         path="/leads"
         element={
-          <ProtectedLayout>
-            <Leads />
-          </ProtectedLayout>
+          <RequireRole allowedRoles={["admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <Leads />
+            </ProtectedLayout>
+          </RequireRole>
         }
       />
+
       <Route
         path="/tasks"
         element={
-          <ProtectedLayout>
-            <Tasks />
-          </ProtectedLayout>
+          <RequireRole allowedRoles={["admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <Tasks />
+            </ProtectedLayout>
+          </RequireRole>
         }
       />
+
       <Route
         path="/calendar"
         element={
-          <ProtectedLayout>
-            <Calendar />
-          </ProtectedLayout>
+          <RequireRole allowedRoles={["admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <Calendar />
+            </ProtectedLayout>
+          </RequireRole>
         }
       />
+
       <Route
         path="/reports"
         element={
-          <ProtectedLayout>
-            <Reports />
-          </ProtectedLayout>
+          <RequireRole allowedRoles={["admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <Reports />
+            </ProtectedLayout>
+          </RequireRole>
         }
       />
+
       <Route
         path="/team"
         element={
-          <ProtectedLayout>
-            <Team />
-          </ProtectedLayout>
+          <RequireRole allowedRoles={["admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <Team />
+            </ProtectedLayout>
+          </RequireRole>
         }
       />
+
       <Route
         path="/appointment"
         element={
-          <ProtectedLayout>
-            <Apointment />
-          </ProtectedLayout>
+          <RequireRole allowedRoles={["admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <Apointment />
+            </ProtectedLayout>
+          </RequireRole>
         }
       />
-      <Route
-        path="/livelocation"
-        element={
-          <ProtectedLayout>
-            <Livelocation />
-          </ProtectedLayout>
-        }
-      />
+
       <Route
         path="/call"
         element={
-          <ProtectedLayout>
-            <Call />
-          </ProtectedLayout>
+          <RequireRole allowedRoles={["user", "admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <Call />
+            </ProtectedLayout>
+          </RequireRole>
         }
       />
+
+      <Route
+        path="/livelocation"
+        element={
+          <RequireRole allowedRoles={["user", "admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <Livelocation />
+            </ProtectedLayout>
+          </RequireRole>
+        }
+      />
+
       <Route
         path="/bdm"
         element={
-          <ProtectedLayout>
-            <BDM />
-          </ProtectedLayout>
+          <RequireRole allowedRoles={["bdm", "admin", "teamleader"]}>
+            <ProtectedLayout showNavbar={showNavbar}>
+              <BDM />
+            </ProtectedLayout>
+          </RequireRole>
         }
       />
     </Routes>

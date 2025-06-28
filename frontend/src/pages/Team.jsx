@@ -6,14 +6,16 @@ import AddUserForm from "../user/AddUserForm";
 import EditUserForm from "../user/EditUserForm";
 
 const Team = () => {
-  const { users } = useUser();
+  const { users, refreshUsers } = useUser(); // include a refresh if you update users after add/edit
   const [selectedUser, setSelectedUser] = useState(null);
   const [activeTab, setActiveTab] = useState("all-users");
 
+  // Filter users based on their roles
   const teamLeaders = users.filter(user => user.userGroup === "teamleader");
   const bdms = users.filter(user => user.userGroup === "bdm");
-  const telecallers = users.filter(user => user.userGroup === "user"); // ✅ Renamed regular users to telecallers
+  const telecallers = users.filter(user => user.userGroup === "user");
 
+  // Handle edit user
   const handleEdit = (user) => {
     setSelectedUser(user);
     setActiveTab("edit-user");
@@ -23,22 +25,33 @@ const Team = () => {
     setActiveTab("add-user");
   };
 
+  const handleUserAdded = () => {
+    refreshUsers?.();         // Refresh users if needed
+    setActiveTab("all-users");
+  };
+
+  const handleUserUpdated = () => {
+    refreshUsers?.();         // Refresh after edit
+    setActiveTab("all-users");
+    setSelectedUser(null);
+  };
+
   return (
     <div className="container mt-5">
-      {/* Header Section */}
+      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h1 className="display-5 fw-bold">Users Dashboard</h1>
-          <p className="text-muted">Manage all your users, team leaders, and BDMs here.</p>
+          <p className="text-muted">Manage users, assign roles, and control login access.</p>
         </div>
         <Button variant="primary" onClick={handleAddUserClick}>
           ➕ Add New User
         </Button>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <div className="row g-4 mb-4">
-        <div className="col-md-4">
+        <div className="col-md-3">
           <Card className="shadow-sm border-0">
             <Card.Body>
               <Card.Title className="text-muted small">Total Users</Card.Title>
@@ -46,7 +59,7 @@ const Team = () => {
             </Card.Body>
           </Card>
         </div>
-        <div className="col-md-4">
+        <div className="col-md-3">
           <Card className="shadow-sm border-0">
             <Card.Body>
               <Card.Title className="text-muted small">Team Leaders</Card.Title>
@@ -54,7 +67,7 @@ const Team = () => {
             </Card.Body>
           </Card>
         </div>
-        <div className="col-md-4">
+        <div className="col-md-3">
           <Card className="shadow-sm border-0">
             <Card.Body>
               <Card.Title className="text-muted small">BDMs</Card.Title>
@@ -62,9 +75,17 @@ const Team = () => {
             </Card.Body>
           </Card>
         </div>
+        <div className="col-md-3">
+          <Card className="shadow-sm border-0">
+            <Card.Body>
+              <Card.Title className="text-muted small">Telecallers</Card.Title>
+              <h4 className="fw-bold">{telecallers.length}</h4>
+            </Card.Body>
+          </Card>
+        </div>
       </div>
 
-      {/* Tabs Section */}
+      {/* Tabs */}
       <Tabs activeKey={activeTab} onSelect={(k) => setActiveTab(k)} id="user-tabs" className="mb-3">
         <Tab eventKey="all-users" title="All Users">
           <Card className="shadow-sm">
@@ -90,7 +111,7 @@ const Team = () => {
           </Card>
         </Tab>
 
-        <Tab eventKey="telecallers" title="Telecallers"> {/* ✅ Updated tab name */}
+        <Tab eventKey="telecallers" title="Telecallers">
           <Card className="shadow-sm">
             <Card.Body>
               <UserTable users={telecallers} onEdit={handleEdit} />
@@ -101,7 +122,7 @@ const Team = () => {
         <Tab eventKey="add-user" title="Add New User">
           <Card className="shadow-sm">
             <Card.Body>
-              <AddUserForm />
+              <AddUserForm onUserAdded={handleUserAdded} />
             </Card.Body>
           </Card>
         </Tab>
@@ -110,7 +131,7 @@ const Team = () => {
           <Tab eventKey="edit-user" title={`Edit: ${selectedUser.username}`}>
             <Card className="shadow-sm">
               <Card.Body>
-                <EditUserForm user={selectedUser} onClose={() => setActiveTab("all-users")} />
+                <EditUserForm user={selectedUser} onUserUpdated={handleUserUpdated} />
               </Card.Body>
             </Card>
           </Tab>

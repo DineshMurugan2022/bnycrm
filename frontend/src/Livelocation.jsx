@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useUser } from './user/UserContext'; // Make sure this path is correct
 
 // Custom marker icon
 const customIcon = new L.Icon({
@@ -11,49 +12,14 @@ const customIcon = new L.Icon({
   popupAnchor: [0, -40],
 });
 
-const initialBDMs = [
-  {
-    name: "Dinesh M",
-    lat: 13.0827,
-    lng: 80.2707,
-    met: 5,
-    notMet: 2,
-    status: "On Appointment",
-    phone: "+919843240703",
-    address: ""
-  },
-  {
-    name: "Vijay K",
-    lat: 13.0674,
-    lng: 80.2376,
-    met: 3,
-    notMet: 4,
-    status: "Travelling",
-    phone: "+919843240703",
-    address: ""
-  },
-  {
-    name: "J. Kishore",
-    lat: 13.0450,
-    lng: 80.2083,
-    met: 2,
-    notMet: 5,
-    status: "Waiting for Appointment",
-    phone: "+919843240703",
-    address: ""
-  }
-];
-
-const TWILIO_API_URL = "http://localhost:5000/send-sms";
-
 const BDMList = () => {
+  const { users } = useUser(); // Get users from context
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
-  const [bdms, setBdms] = useState(initialBDMs);
+  const [bdms, setBdms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [appointmentStatus, setAppointmentStatus] = useState('');
 
-  // Fetch address using OpenStreetMap Nominatim API
   const fetchAddress = async (lat, lng) => {
     try {
       const response = await fetch(
@@ -67,7 +33,6 @@ const BDMList = () => {
     }
   };
 
-  // Initialize map and add markers
   const initMap = (bdmData) => {
     if (!mapRef.current || mapInstance.current) return;
 
@@ -92,50 +57,67 @@ const BDMList = () => {
     });
   };
 
-  // Send appointment SMS
   const handleAddAppointment = async (bdm) => {
     try {
-      const response = await fetch(TWILIO_API_URL, {
+      const response = await fetch('http://localhost:5000/send-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: bdm.phone,
-          message: `Appointment scheduled with ${bdm.name}. Please be on time!`
-        })
+          message: `📅 Appointment scheduled with ${bdm.name}. Please be on time!`
+        }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        setAppointmentStatus('✅ Appointment message sent successfully!');
+        setAppointmentStatus('✅ WhatsApp message sent successfully!');
       } else {
-        setAppointmentStatus('❌ Failed to send appointment message.');
+        console.error(data);
+        setAppointmentStatus('❌ Failed to send WhatsApp message.');
       }
     } catch (error) {
-      console.error('Error sending appointment message:', error);
-      setAppointmentStatus('❌ Error occurred while sending message.');
+      console.error('Error:', error);
+      setAppointmentStatus('❌ Error occurred while sending WhatsApp message.');
     }
   };
 
-  // Fetch addresses on mount
   useEffect(() => {
     const fetchAllAddresses = async () => {
       setLoading(true);
+
+      // Filter only BDM users
+      const bdmUsers = users
+        .filter((user) => user.userGroup === 'bdm')
+        .map((user) => ({
+          name: user.fullName || user.username,
+          lat: user.lat || 13.0827, // fallback coordinates
+          lng: user.lng || 80.2707,
+          met: user.met || 0,
+          notMet: user.notMet || 0,
+          status: user.status || "No Status",
+          phone: user.phone || "0000000000",
+          address: ""
+        }));
+
       const updatedBdms = await Promise.all(
-        initialBDMs.map(async (bdm) => {
+        bdmUsers.map(async (bdm) => {
           const address = await fetchAddress(bdm.lat, bdm.lng);
           return { ...bdm, address };
         })
       );
+
       setBdms(updatedBdms);
       initMap(updatedBdms);
       setLoading(false);
     };
 
     fetchAllAddresses();
-  }, []);
+  }, [users]);
 
   return (
     <div className="container mt-4">
-      <h3 className="text-center mb-4">📍 BDM Live Tracking Dashboard </h3>
+      <h3 className="text-center mb-4">📍 BDM Live Tracking Dashboard</h3>
 
       {loading && (
         <div className="alert alert-info text-center">
@@ -162,10 +144,10 @@ const BDMList = () => {
                 <p>📞 Phone: {bdm.phone}</p>
                 <p>🚀 Status: <strong>{bdm.status}</strong></p>
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-success"
                   onClick={() => handleAddAppointment(bdm)}
                 >
-                  Add Appointment
+                  Send WhatsApp Message
                 </button>
               </div>
             </div>

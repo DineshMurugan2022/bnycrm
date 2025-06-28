@@ -46,10 +46,5 @@ const StatCard = ({ title, value, icon, change, className }) => {
 export default StatCard;
 import { DollarSign } from 'lucide-react';
 
-<StatCard
-  title="Revenue"
-  value="$12,345"
-  icon={<DollarSign size={20} />}
-  change={{ value: 12.5, trend: 'up' }}
-/>
+
 
